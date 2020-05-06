@@ -109,7 +109,7 @@ function ExamFormData(props) {
         <div className={'form-group'}>
             <label htmlFor='selectCourse'>Course</label>
             <select id='selectCourse' className={'form-control'} defaultValue={props.exam.coursecode}>
-                {props.courses.map((c) => <option value={c.coursecode}>{c.name}</option>)}
+                {props.courses.map((c) => <option key={c.coursecode} value={c.coursecode}>{c.name}</option>)}
             </select></div>
         &nbsp;
         <div className={'form-group'}>
