@@ -46,7 +46,7 @@ class ExamTable extends React.Component {
             <tbody>{
                 this.state.exams.map((e) => <ExamRow key={e.coursecode}
                                                      exam={{...e, name: this.props.courseNames[e.coursecode]}}
-                                                     onClick={this.highlightRow}/>)
+                                                     />)
             }
             </tbody>
             <caption style={{captionSide: 'top'}}>My exams...</caption>
@@ -105,23 +105,24 @@ function OptionalExamForm(props) {
 }
 
 function ExamFormData(props) {
+    const defaultExam = props.exam || {} ;
     return <div className={'form-row'}>
         <div className={'form-group'}>
             <label htmlFor='selectCourse'>Course</label>
-            <select id='selectCourse' className={'form-control'} defaultValue={props.exam.coursecode}>
+            <select id='selectCourse' className={'form-control'} defaultValue={defaultExam.coursecode}>
                 {props.courses.map((c) => <option key={c.coursecode} value={c.coursecode}>{c.name}</option>)}
             </select></div>
         &nbsp;
         <div className={'form-group'}>
             <label htmlFor='inputScore'>Score</label>
             <input id='inputScore' className={'form-control'} type='number' min={18} max={31} name='score'
-                   defaultValue={props.exam.score}/>
+                   defaultValue={defaultExam.score}/>
         </div>
         &nbsp;
         <div className={'form-group'}>
             <label htmlFor='inputDate'>Date</label>
             <input id='inputDate' className={'form-control'} type='date' name='examdate'
-                   defaultValue={props.exam.date}/>
+                   defaultValue={defaultExam.date}/>
         </div>
     </div>;
 }
