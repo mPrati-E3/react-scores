@@ -1,7 +1,7 @@
 import React from 'react';
 
 const iconEdit = <svg className="bi bi-pencil-square" width="1em" height="1em" viewBox="0 0 16 16" fill="orange"
-                       xmlns="http://www.w3.org/2000/svg">
+                      xmlns="http://www.w3.org/2000/svg">
     <path
         d="M15.502 1.94a.5.5 0 010 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 01.707 0l1.293 1.293zm-1.75 2.456l-2-2L4.939 9.21a.5.5 0 00-.121.196l-.805 2.414a.25.25 0 00.316.316l2.414-.805a.5.5 0 00.196-.12l6.813-6.814z"/>
     <path fillRule="evenodd"
@@ -10,7 +10,7 @@ const iconEdit = <svg className="bi bi-pencil-square" width="1em" height="1em" v
 </svg>;
 
 const iconDelete = <svg className="bi bi-trash" width="1em" height="1em" viewBox="0 0 16 16" fill="red"
-                         xmlns="http://www.w3.org/2000/svg">
+                        xmlns="http://www.w3.org/2000/svg">
     <path
         d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z"/>
     <path fillRule="evenodd"
@@ -19,19 +19,15 @@ const iconDelete = <svg className="bi bi-trash" width="1em" height="1em" viewBox
 </svg>;
 
 const iconAdd = <svg className="bi bi-plus-square-fill" width="2em" height="2em" viewBox="0 0 16 16" fill="green"
-                      xmlns="http://www.w3.org/2000/svg">
-        <path fillRule="evenodd"
-              d="M2 0a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V2a2 2 0 00-2-2H2zm6.5 4a.5.5 0 00-1 0v3.5H4a.5.5 0 000 1h3.5V12a.5.5 0 001 0V8.5H12a.5.5 0 000-1H8.5V4z"
-              clipRule="evenodd"/>
-    </svg>;
+                     xmlns="http://www.w3.org/2000/svg">
+    <path fillRule="evenodd"
+          d="M2 0a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V2a2 2 0 00-2-2H2zm6.5 4a.5.5 0 00-1 0v3.5H4a.5.5 0 000 1h3.5V12a.5.5 0 001 0V8.5H12a.5.5 0 000-1H8.5V4z"
+          clipRule="evenodd"/>
+</svg>;
 
 
 class ExamTable extends React.Component {
-    constructor(props) {
-        super(props);
 
-        this.state = {exams: [...props.exams]}; // copy the initial list of exams from props
-    }
 
     render() {
         return <table className='table ' style={{marginBottom: 0}}>
@@ -44,9 +40,9 @@ class ExamTable extends React.Component {
             </tr>
             </thead>
             <tbody>{
-                this.state.exams.map((e) => <ExamRow key={e.coursecode}
+                this.props.exams.map((e) => <ExamRow key={e.coursecode}
                                                      exam={{...e, name: this.props.courseNames[e.coursecode]}}
-                                                     />)
+                />)
             }
             </tbody>
             <caption style={{captionSide: 'top'}}>My exams...</caption>
@@ -95,43 +91,90 @@ function ExamScores(props) {
 function OptionalExamForm(props) {
     if (props.mode === 'view')
         return null;
-    else
+    else {
         return <div className={'jumbotron'}>
-            <form className=''>
-                <ExamFormData exam={props.exam} courses={props.courses}/>
-                <ExamFormControls/>
-            </form>
-        </div>
+            <ExamForm exam={props.exam} courses={props.courses} addExam={props.addExam}/>
+        </div>;
+    }
+}
+
+class ExamForm extends React.Component {
+
+    constructor(props) {
+        super(props);
+        this.state = {...this.props.exam};
+    }
+
+    updateCourse = (coursecode) => {
+        this.setState({coursecode: coursecode});
+    }
+
+    updateScore = (score) => {
+        this.setState({score: score});
+    }
+
+    updateDate = (date) => {
+        this.setState({date: new Date(date)});
+    }
+
+    doInsertExam = (exam) => {
+        this.props.addExam(exam);
+    }
+
+    doCancel = () => {
+
+    }
+
+    render() {
+        return <form className='' onSubmit={(ev)=>{ev.preventDefault()}}>
+            <ExamFormData exam={ {coursecode: this.state.coursecode, score:this.state.score, date:this.state.date.toISOString().substr(0,10)}}
+            courses={this.props.courses}
+                          updateCourse={this.updateCourse}
+                          updateScore={this.updateScore}
+                          updateDate={this.updateDate}
+            />
+            <ExamFormControls insert={()=>this.doInsertExam(this.state)} cancel={this.doCancel}/>
+        </form>;
+    }
 }
 
 function ExamFormData(props) {
-    const defaultExam = props.exam || {} ;
     return <div className={'form-row'}>
         <div className={'form-group'}>
             <label htmlFor='selectCourse'>Course</label>
-            <select id='selectCourse' className={'form-control'} defaultValue={defaultExam.coursecode}>
+            <select id='selectCourse' className={'form-control'}
+                    name='coursecode'
+                    value={props.exam.coursecode}
+                    onChange={(ev) => props.updateCourse(ev.target.value)}
+            >
                 {props.courses.map((c) => <option key={c.coursecode} value={c.coursecode}>{c.name}</option>)}
             </select></div>
         &nbsp;
         <div className={'form-group'}>
             <label htmlFor='inputScore'>Score</label>
-            <input id='inputScore' className={'form-control'} type='number' min={18} max={31} name='score'
-                   defaultValue={defaultExam.score}/>
+            <input id='inputScore' className={'form-control'} type='number' min={18} max={31} required={true}
+                   name='score'
+                   value={props.exam.score}
+                   onChange={(ev) => props.updateScore(ev.target.value)}/>
         </div>
         &nbsp;
         <div className={'form-group'}>
             <label htmlFor='inputDate'>Date</label>
-            <input id='inputDate' className={'form-control'} type='date' name='examdate'
-                   defaultValue={defaultExam.date}/>
+            <input id='inputDate' className={'form-control'} required={true}
+                   type='date'
+                   name='date'
+                   value={props.exam.date}
+                   onChange={(ev) => props.updateDate(ev.target.value)}
+            />
         </div>
     </div>;
 }
 
 function ExamFormControls(props) {
     return <div className={'form-row'}>
-        <button type="submit" className="btn btn-primary">Save</button>
+        <button type="submit" className="btn btn-primary" onClick={()=>props.insert()}>Save</button>
         &nbsp;
-        <button type="submit" className="btn btn-secondary">Cancel</button>
+        <button type="submit" className="btn btn-secondary" onClick={()=>props.cancel()}>Cancel</button>
     </div>;
 }
 

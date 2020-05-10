@@ -23,11 +23,33 @@ const fakeCourses = [
 ];
 
 class App extends React.Component {
+
+    constructor(props) {
+        super(props);
+
+        this.state = {exams: [...fakeExams]}; // copy the initial list of exams from props
+    }
+
+
+    addExam = (exam) => {
+        // Mandatory reading: https://www.robinwieruch.de/react-state-array-add-update-remove
+        this.setState((state) => {
+            // remove possible duplicates (same code)
+            let buildstate = state.exams.filter((ex)=> ex.coursecode!==exam.coursecode) ;
+            // add new exam
+            buildstate.push(exam);
+            return {exams: buildstate}
+        }, ()=>{console.log(this.state)});
+    }
+
     render() {
         return <div className="App">
             <AppTitle/>
-            <ExamScores exams={fakeExams} courses={fakeCourses} mode={'view'}/>
-            <OptionalExamForm courses={fakeCourses} mode={'add'} exam={fakeExams[2]}/>
+            <ExamScores exams={this.state.exams} courses={fakeCourses} mode={'view'}
+
+            />
+            <OptionalExamForm courses={fakeCourses} mode={'add'} exam={fakeExams[2]} addExam={this.addExam}
+            />
         </div>
     }
 
