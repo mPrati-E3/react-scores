@@ -3,7 +3,6 @@ import {iconAdd, iconDelete, iconEdit} from "./svgIcons";
 
 class ExamTable extends React.Component {
 
-
     render() {
         return <table className='table ' style={{marginBottom: 0}}>
             <thead>
@@ -16,10 +15,13 @@ class ExamTable extends React.Component {
             </thead>
             <tbody>{
                 this.props.exams.map((e) => <ExamRow key={e.coursecode}
-                                                     exam={{...e, name: this.props.courseNames[e.coursecode]}}
+                                                     exam={e}
+                                                     examName={this.props.courseNames[e.coursecode]}
                                                      requireEditExam={this.props.requireEditExam}
                                                      deleteExam={this.props.deleteExam}
                 />)
+                /* NOTE: exam={{...e, name: this.props.courseNames[e.coursecode]}} could be a quicker (and dirtier) way
+                to add the .name property to the exam, instead of passing the examName prop */
             }
             </tbody>
             <caption style={{captionSide: 'top'}}>My exams...</caption>
@@ -36,7 +38,7 @@ function ExamRow(props) {
 
 function ExamRowData(props) {
     return <>
-        <td>{props.exam.name}</td>
+        <td>{props.examName}</td>
         <td>{props.exam.score}</td>
         <td>{new Date(props.exam.date).toLocaleDateString()}</td>
     </>;
@@ -191,9 +193,9 @@ function ExamFormData(props) {
 
 function ExamFormControls(props) {
     return <div className={'form-row'}>
-        <button type="button" className="btn btn-primary" onClick={() => props.insert()}>{props.mode==='add'?'Insert':'Modify'}</button>
+        <button type="button" className="btn btn-primary" onClick={props.insert}>{props.mode==='add'?'Insert':'Modify'}</button>
         &nbsp;
-        <button type="button" className="btn btn-secondary" onClick={() => props.cancel()}>Cancel</button>
+        <button type="button" className="btn btn-secondary" onClick={props.cancel}>Cancel</button>
     </div>;
 }
 
