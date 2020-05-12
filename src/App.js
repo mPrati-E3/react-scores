@@ -3,13 +3,12 @@ import AppTitle from "./AppTitle";
 import {ExamScores, OptionalExamForm} from "./ExamComponents";
 import API from './API';
 
-
 class App extends React.Component {
 
     constructor(props) {
         super(props);
 
-        this.state = {exams: [], courses: [], mode: 'view', editedExam: null}; // copy the initial list of exams from props
+        this.state = {exams: [], courses: [], mode: 'view', editedExam: null};
     }
 
     componentDidMount() {
@@ -33,8 +32,7 @@ class App extends React.Component {
     }
 
     requireEditExam = (exam) => {
-        this.setState({mode: 'edit'});
-        this.setState({editedExam: exam});
+        this.setState({mode: 'edit', editedExam: exam});
     }
 
     deleteExam = (exam) => {
@@ -42,14 +40,12 @@ class App extends React.Component {
     }
 
     cancelExam = () => {
-        this.setState({mode: 'view'});
-        this.setState({editedExam: null});
+        this.setState({mode: 'view', editedExam: null});
 
     }
 
     openExamForm = () => {
-        this.setState({mode: 'add'});
-        this.setState({editedExam: null});
+        this.setState({mode: 'add', editedExam: null});
     }
 
     render() {
