@@ -19,6 +19,7 @@ class ExamTable extends React.Component {
                                                      examName={this.props.courseNames[e.coursecode]}
                                                      requireEditExam={this.props.requireEditExam}
                                                      deleteExam={this.props.deleteExam}
+                                                     mode={this.props.mode}
                 />)
                 /* NOTE: exam={{...e, name: this.props.courseNames[e.coursecode]}} could be a quicker (and dirtier) way
                 to add the .name property to the exam, instead of passing the examName prop */
@@ -32,7 +33,8 @@ class ExamTable extends React.Component {
 function ExamRow(props) {
     return <tr>
         <ExamRowData exam={props.exam} examName={props.examName}/>
-        <RowControls exam={props.exam} requireEditExam={props.requireEditExam} deleteExam={props.deleteExam}/>
+        <RowControls exam={props.exam} requireEditExam={props.requireEditExam}
+                     deleteExam={props.deleteExam} mode={props.mode}/>
     </tr>
 }
 
@@ -46,8 +48,10 @@ function ExamRowData(props) {
 
 function RowControls(props) {
     return <td>
-        <span onClick={() => props.requireEditExam(props.exam)}>{iconEdit}</span>
-        <span onClick={() => props.deleteExam(props.exam)}>{iconDelete}</span>
+        {(props.mode === 'view') && <>
+            <span onClick={() => props.requireEditExam(props.exam)}>{iconEdit}</span>
+            <span onClick={() => props.deleteExam(props.exam)}>{iconDelete}</span>
+        </>}
     </td>
 }
 
@@ -69,7 +73,8 @@ function ExamScores(props) {
     return <>
         <ExamTable exams={props.exams} courseNames={courseNames}
                    requireEditExam={props.requireEditExam}
-                   deleteExam={props.deleteExam}/>
+                   deleteExam={props.deleteExam}
+                   mode={props.mode}/>
         <TableControls mode={props.mode} openExamForm={props.openExamForm}/>
     </>;
 }
@@ -144,7 +149,8 @@ class ExamForm extends React.Component {
             updateCourse={this.updateCourse}
                           updateScore={this.updateScore}
                           updateDate={this.updateDate}*/}
-            <ExamFormControls insert={() => this.doInsertExam(this.state)} cancel={this.doCancel} mode={this.props.mode}/>
+            <ExamFormControls insert={() => this.doInsertExam(this.state)} cancel={this.doCancel}
+                              mode={this.props.mode}/>
         </form>;
     }
 }
@@ -156,7 +162,7 @@ function ExamFormData(props) {
             <select id='selectCourse' className={'form-control'} required={true}
                     name='coursecode'
                     value={props.exam.coursecode}
-                    disabled={props.mode==='edit'}
+                    disabled={props.mode === 'edit'}
                     onChange={(ev) => props.updateField(ev.target.name, ev.target.value)}>
 
                 <option value=''> </option>
@@ -193,7 +199,8 @@ function ExamFormData(props) {
 
 function ExamFormControls(props) {
     return <div className={'form-row'}>
-        <button type="button" className="btn btn-primary" onClick={props.insert}>{props.mode==='add'?'Insert':'Modify'}</button>
+        <button type="button" className="btn btn-primary"
+                onClick={props.insert}>{props.mode === 'add' ? 'Insert' : 'Modify'}</button>
         &nbsp;
         <button type="button" className="btn btn-secondary" onClick={props.cancel}>Cancel</button>
     </div>;
