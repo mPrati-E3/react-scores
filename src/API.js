@@ -1,29 +1,89 @@
-const fakeExams = [
-    {coursecode: '01TYMOV', score: 28, date: '2020-04-01'},
-    {coursecode: '01SQJOV', score: 29, date: '2020-05-03'},
-    {coursecode: '04GSPOV', score: 18, date: '2020-04-24'},
-    {coursecode: '01TXYOV', score: 24, date: '2020-04-21'},
-].sort((a, b) => a.date.localeCompare(b.date));
+// All the API calls are defined here
 
-const fakeCourses = [
-    {coursecode: '01TYMOV', name: 'Information systems security'},
-    {coursecode: '02LSEOV', name: 'Computer architectures'},
-    {coursecode: '01SQJOV', name: 'Data Science and Database Technology'},
-    {coursecode: '01OTWOV', name: 'Computer network technologies and services'},
-    {coursecode: '04GSPOV', name: 'Software engineering'},
-    {coursecode: '01TXYOV', name: 'Web Applications I'},
-    {coursecode: '01NYHOV', name: 'System and device programming'},
-    {coursecode: '01TYDOV', name: 'Cloud Computing'},
-    {coursecode: '01SQPOV', name: 'Software Networking'},
-].sort((a,b)=>a.name.localeCompare(b.name));
+import Exam from "./exam.js";
+import Course from "./course.js";
 
-async function getExams() {
-    return fakeExams ;
+const BASEURL = '/api';
+
+async function getAllExams() {
+    // call REST API : GET /exams
+    const response = await fetch(BASEURL + '/exams');
+    const exams_json = await response.json();
+    if (response.ok) {
+        return exams_json.map((ex) => Exam.from(ex));
+    } else {
+        throw exams_json;  // An object with the error coming from the server
+    }
 }
 
-async function getCourses() {
-    return fakeCourses ;
+async function insertNewExam(exam) {
+    return new Promise((resolve, reject) => {
+        fetch(BASEURL + '/exams', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(exam),
+        }).then((response) => {
+            if (response.ok) {
+                resolve(null);
+            } else {
+                // analyze the cause of error
+                response.json()
+                    .then((obj) => { reject(obj); }) // error msg in the response body
+                    .catch((err) => { reject({ errors: [{ param: "Application", msg: "Cannot parse server response" }] }) }); // something else
+            }
+        }).catch((err) => { reject({ errors: [{ param: "Server", msg: "Cannot communicate" }] }) }); // connection errors
+    });
+
 }
 
-const API = { getCourses, getExams } ;
+async function updateExam(exam) {
+    return new Promise((resolve, reject) => {
+        fetch(BASEURL + '/exams/' + exam.coursecode, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(exam),
+        }).then((response) => {
+            if (response.ok) {
+                resolve(null);
+            } else {
+                // analyze the cause of error
+                response.json()
+                    .then((obj) => { reject(obj); }) // error msg in the response body
+                    .catch((err) => { reject({ errors: [{ param: "Application", msg: "Cannot parse server response" }] }) }); // something else
+            }
+        }).catch((err) => { reject({ errors: [{ param: "Server", msg: "Cannot communicate" }] }) }); // connection errors
+    });
+
+}
+
+async function getAllCourses() {
+    const response = await fetch(BASEURL + '/courses');
+    const jsoncourses = await response.json();
+    const courses = jsoncourses.map((jc) => Course.from(jc));
+    return courses;
+}
+
+async function deleteExam(exam) {
+    return new Promise((resolve, reject) => {
+        fetch(BASEURL + '/exams/' + exam.coursecode, {
+            method: 'DELETE',
+        }).then((response) => {
+            if (response.ok) {
+                resolve(null);
+            } else {
+                // analyze the cause of error
+                response.json()
+                    .then((obj) => { reject(obj); }) // error msg in the response body
+                    .catch((err) => { reject({ errors: [{ param: "Application", msg: "Cannot parse server response" }] }) }); // something else
+            }
+        }).catch((err) => { reject({ errors: [{ param: "Server", msg: "Cannot communicate" }] }) }); // connection errors
+    });
+
+}
+
+const API = { getAllExams, insertNewExam, updateExam, deleteExam, getAllCourses };
 export default API;
