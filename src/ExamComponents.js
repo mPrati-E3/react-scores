@@ -67,7 +67,8 @@ function TableControls(props) {
 }
 
 function ExamScores(props) {
-    if (props.mode !== 'loading') {
+    const modes = ['view','add','edit'];
+    if (modes.includes(props.mode)) {
         const courseNames = {};
         for (const c of props.courses)
             courseNames[c.coursecode] = c.name;
@@ -84,16 +85,15 @@ function ExamScores(props) {
 }
 
 function OptionalExamForm(props) {
-    if (props.mode === 'view' || props.mode === 'loading')
-        return null;
-    else {
+    if (props.mode === 'add' || props.mode === 'edit')
         return <div className={'jumbotron'}>
             <ExamForm exam={props.exam} courses={props.courses}
                 mode={props.mode}
                 addOrEditExam={props.addOrEditExam}
                 cancelForm={props.cancelForm} />
         </div>;
-    }
+    else
+        return null;
 }
 
 class ExamForm extends React.Component {
@@ -234,5 +234,6 @@ function Loading(props) {
     else
         return null;
 }
+
 
 export { ExamScores, OptionalExamForm, OptionalErrorMsg, Loading };
