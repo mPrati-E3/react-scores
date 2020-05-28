@@ -12,6 +12,7 @@ class App extends React.Component {
         this.state = { exams: [], courses: [], 
             mode: 'login', editedExam: null, 
             errorMsg: '', loginError: false,
+            user: '',
             csrfToken: null };
     }
 
@@ -109,13 +110,13 @@ class App extends React.Component {
     userLogin = (user, pass) => {
         this.setState({mode: 'loginInProgress'});
         API.userLogin(user, pass).then(
-            () => {
-                this.setState({ mode: 'loading' , loginError: false});
+            (userObj) => {
+                this.setState({ mode: 'loading' , loginError: false, user: userObj.name});
                 this.loadInitialData();
                 API.getCSRFToken().then( (response) => this.setState({csrfToken: response.csrfToken}));
             }
         ).catch(
-            () => {this.setState({loginError: true, mode: 'login'})}
+            () => {this.setState({loginError: true, mode: 'login', user: ''})}
             /*
             (errorObj) => {
                 if (errorObj) {
@@ -131,7 +132,7 @@ class App extends React.Component {
 
     userLogout = () => {
         API.userLogout().then(
-            () => {this.setState({mode: 'login'})}
+            () => {this.setState({mode: 'login', user: ''})}
         );
     }
 
@@ -153,6 +154,7 @@ class App extends React.Component {
             <Loading mode={this.state.mode} />
             <OptionalErrorMsg errorMsg={this.state.errorMsg} cancelErrorMsg={this.cancelErrorMsg} />
             <ExamScores exams={this.state.exams} courses={this.state.courses} mode={this.state.mode}
+                user={this.state.user}
                 openExamForm={this.openExamForm} requireEditExam={this.requireEditExam}
                 deleteExam={this.deleteExam}
             />

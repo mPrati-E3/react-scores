@@ -103,7 +103,9 @@ async function userLogin(username, password) {
             body: JSON.stringify({username: username, password: password}),
         }).then((response) => {
             if (response.ok) {
-                resolve(null);
+                response.json()
+                .then((obj) => { resolve(obj); }) 
+                .catch((err) => { reject({ errors: [{ param: "Application", msg: "Cannot parse server response" }] }) }); // something else
             } else {
                 // analyze the cause of error
                 response.json()

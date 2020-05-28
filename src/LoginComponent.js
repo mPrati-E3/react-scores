@@ -5,7 +5,7 @@ class LoginForm extends React.Component {
     constructor(props) {
         super(props);
         // prefilled user pass fields just for convenience for testing purposes
-        this.state = { username: 'testuser', password: 'testpwd', buttonEnabled: true };
+        this.state = { username: 'u1@p.it', password: 'ppp', buttonEnabled: true };
     }
 
     updateField = (name, value) => {
@@ -37,7 +37,7 @@ class LoginForm extends React.Component {
                     <div className={'form-row'}>
                         <div className={'form-group'}>
                             <label htmlFor='username'>Username</label>
-                            <input id='username' className={'form-control'} type='text' required={true}
+                            <input id='username' className={'form-control'} type='email' required={true}
                                 name='username'
                                 value={this.state.username}
                                 onChange={(ev) => this.updateField(ev.target.name, ev.target.value)}

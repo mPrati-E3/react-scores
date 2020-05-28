@@ -25,7 +25,7 @@ class ExamTable extends React.Component {
                 to add the .name property to the exam, instead of passing the examName prop */
             }
             </tbody>
-            <caption style={{ captionSide: 'top' }}>My exams...</caption>
+            <caption style={{ captionSide: 'top' }}>Exams of {this.props.user}</caption>
         </table>
     }
 }
@@ -76,7 +76,8 @@ function ExamScores(props) {
             <ExamTable exams={props.exams} courseNames={courseNames}
                 requireEditExam={props.requireEditExam}
                 deleteExam={props.deleteExam}
-                mode={props.mode} />
+                mode={props.mode}
+                user={props.user} />
             <TableControls mode={props.mode} openExamForm={props.openExamForm} />
         </>;
     } else {
