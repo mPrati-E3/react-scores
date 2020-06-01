@@ -1,6 +1,8 @@
 import React from 'react';
 import { iconAdd, iconDelete, iconEdit } from "./svgIcons";
 
+import { Link, Redirect } from 'react-router-dom';
+
 class ExamTable extends React.Component {
 
     render() {
@@ -17,9 +19,7 @@ class ExamTable extends React.Component {
                 this.props.exams.map((e) => <ExamRow key={e.coursecode}
                     exam={e}
                     examName={this.props.courseNames[e.coursecode]}
-                    requireEditExam={this.props.requireEditExam}
                     deleteExam={this.props.deleteExam}
-                    mode={this.props.mode}
                 />)
                 /* NOTE: exam={{...e, name: this.props.courseNames[e.coursecode]}} could be a quicker (and dirtier) way
                 to add the .name property to the exam, instead of passing the examName prop */
@@ -33,8 +33,8 @@ class ExamTable extends React.Component {
 function ExamRow(props) {
     return <tr>
         <ExamRowData exam={props.exam} examName={props.examName} />
-        <RowControls exam={props.exam} requireEditExam={props.requireEditExam}
-            deleteExam={props.deleteExam} mode={props.mode} />
+        <RowControls exam={props.exam}
+            deleteExam={props.deleteExam} />
     </tr>
 }
 
@@ -48,60 +48,44 @@ function ExamRowData(props) {
 
 function RowControls(props) {
     return <td>
-        {(props.mode === 'view') && <>
-            <span onClick={() => props.requireEditExam(props.exam)}>{iconEdit}</span>
+        {<>
+            <Link to={{ 
+                pathname: '/update', 
+                state: {exam: props.exam} 
+                }} >{iconEdit}</Link>
             <span onClick={() => props.deleteExam(props.exam)}>{iconDelete}</span>
         </>}
     </td>
 }
 
 function TableControls(props) {
-    if (props.mode === 'view')
-        return <div align={'right'}>
-            <button type='button' className='btn btn-default btn-lg' style={{ padding: 0 }}
-                onClick={() => props.openExamForm()}>
-                {iconAdd}
-            </button>
-        </div>
-    else return null;
+    return <div align={'right'}>
+        <Link to='/update' className='btn btn-default btn-lg' style={{ padding: 0 }} >
+            {iconAdd}
+        </Link>
+    </div>
 }
 
 function ExamScores(props) {
-    const modes = ['view','add','edit'];
-    if (modes.includes(props.mode)) {
-        const courseNames = {};
-        for (const c of props.courses)
-            courseNames[c.coursecode] = c.name;
-        return <>
-            <ExamTable exams={props.exams} courseNames={courseNames}
-                requireEditExam={props.requireEditExam}
-                deleteExam={props.deleteExam}
-                mode={props.mode}
-                user={props.user} />
-            <TableControls mode={props.mode} openExamForm={props.openExamForm} />
-        </>;
-    } else {
-        return null;
-    }
+    const courseNames = {};
+    for (const c of props.courses)
+        courseNames[c.coursecode] = c.name;
+    return <>
+        <ExamTable exams={props.exams} courseNames={courseNames}
+            deleteExam={props.deleteExam}
+            user={props.user} />
+        <TableControls />
+    </>;
 }
 
-function OptionalExamForm(props) {
-    if (props.mode === 'add' || props.mode === 'edit')
-        return <div className={'jumbotron'}>
-            <ExamForm exam={props.exam} courses={props.courses}
-                mode={props.mode}
-                addOrEditExam={props.addOrEditExam}
-                cancelForm={props.cancelForm} />
-        </div>;
-    else
-        return null;
-}
 
 class ExamForm extends React.Component {
 
     constructor(props) {
         super(props);
-        this.state = this.props.exam ? { ...this.props.exam } : { coursecode: null, score: null, date: null };
+        this.state = this.props.exam ? 
+            { ...this.props.exam, submitted: false } : 
+            { coursecode: null, score: null, date: null, submitted: false };
     }
 
     /*
@@ -125,13 +109,10 @@ class ExamForm extends React.Component {
     doInsertExam = (exam) => {
         if (this.form.checkValidity()) {
             this.props.addOrEditExam(exam);
+            this.setState( {submitted: true});
         } else {
             this.form.reportValidity();
         }
-    }
-
-    doCancel = () => {
-        this.props.cancelForm();
     }
 
     validateForm = (event) => {
@@ -139,7 +120,11 @@ class ExamForm extends React.Component {
     }
 
     render() {
-        return <form className='' onSubmit={this.validateForm} ref={form => this.form = form}>
+        if (this.state.submitted)
+            return <Redirect to='/' />;
+        else
+        return <div className={'jumbotron'}>
+            <form className='' onSubmit={this.validateForm} ref={form => this.form = form}>
             <ExamFormData exam={{
                 coursecode: this.state.coursecode || '',
                 score: this.state.score || '',
@@ -148,15 +133,16 @@ class ExamForm extends React.Component {
                 courses={this.props.courses}
 
                 updateField={this.updateField}
-                mode={this.props.mode}
+                isModify={this.props.exam?true:false}
             />
             {/* if you want to handle each field separately:
             updateCourse={this.updateCourse}
                           updateScore={this.updateScore}
                           updateDate={this.updateDate}*/}
-            <ExamFormControls insert={() => this.doInsertExam(this.state)} cancel={this.doCancel}
-                mode={this.props.mode} />
-        </form>;
+            <ExamFormControls insert={() => this.doInsertExam(this.state)}
+                isModify={this.props.exam?true:false} submitted={this.state.submitted} />
+            </form>
+        </div>;
     }
 }
 
@@ -167,7 +153,7 @@ function ExamFormData(props) {
             <select id='selectCourse' className={'form-control'} required={true}
                 name='coursecode'
                 value={props.exam.coursecode}
-                disabled={props.mode === 'edit'}
+                disabled={props.isModify}
                 onChange={(ev) => props.updateField(ev.target.name, ev.target.value)}>
 
                 <option value=''> </option>
@@ -204,10 +190,10 @@ function ExamFormData(props) {
 
 function ExamFormControls(props) {
     return <div className={'form-row'}>
-        <button type="button" className="btn btn-primary"
-            onClick={props.insert}>{props.mode === 'add' ? 'Insert' : 'Modify'}</button>
+        <button type="button" className="btn btn-primary" disabled={props.submitted}
+            onClick={props.insert}>{props.isModify ? 'Modify' : 'Insert'}</button>
         &nbsp;
-        <button type="button" className="btn btn-secondary" onClick={props.cancel}>Cancel</button>
+        <Link to='/' className="btn btn-secondary" >Cancel</Link>
     </div>;
 }
 
@@ -227,14 +213,11 @@ function OptionalErrorMsg(props) {
 }
 
 function Loading(props) {
-    if (props.mode === 'loading')
         return <div className='d-flex align-items-left'>
             <div className='spinner-border m-2' role='status' aria-hidden='true'></div>
             <strong>Loading...</strong>
-        </div>
-    else
-        return null;
+        </div>;
 }
 
 
-export { ExamScores, OptionalExamForm, OptionalErrorMsg, Loading };
+export { ExamScores, ExamForm, OptionalErrorMsg, Loading };

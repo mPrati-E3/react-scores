@@ -7,13 +7,23 @@ const BASEURL = '/api';
 
 async function getAllExams() {
     // call REST API : GET /exams
-    const response = await fetch(BASEURL + '/exams');
-    const exams_json = await response.json();
-    if (response.ok) {
-        return exams_json.map((ex) => Exam.from(ex));
-    } else {
-        throw exams_json;  // An object with the error coming from the server
-    }
+    return new Promise((resolve, reject) => {
+        fetch(BASEURL + '/exams', {
+            method: 'GET',
+        }).then((response) => {
+            const status = response.status;
+            if (response.ok) {
+                response.json()
+                .then((obj) => { resolve( obj.map((ex) => Exam.from(ex))) } ) 
+                .catch((err) => { reject({ errors: [{ param: "Application", msg: "Cannot parse server response" }] }) }); // something else
+            } else {
+                // analyze the cause of error
+                response.json()
+                    .then((obj) => { obj.status = status; reject(obj); }) // error msg in the response body
+                    .catch((err) => { reject({ errors: [{ param: "Application", msg: "Cannot parse server response" }] }) }); // something else
+            }
+        }).catch((err) => { reject({ errors: [{ param: "Server", msg: "Cannot communicate" }] }) }); // connection errors
+    });
 }
 
 async function insertNewExam(exam, csrfToken) {
@@ -151,6 +161,27 @@ async function userLogout() {
     });
 }
 
+async function getUserInfo() {
+    return new Promise((resolve, reject) => {
+        fetch(BASEURL + '/user', {
+            method: 'GET',
+        }).then((response) => {
+            const status = response.status;
+            if (response.ok) {
+                response.json()
+                .then((obj) => { resolve(obj) } )
+                .catch((err) => { reject({ errors: [{ param: "Application", msg: "Cannot parse server response" }] }) }); // something else
+            } else {
+                // analyze the cause of error
+                response.json()
+                    .then((obj) => { obj.status = status; reject(obj); }) // error msg in the response body
+                    .catch((err) => { reject({ errors: [{ param: "Application", msg: "Cannot parse server response" }] }) }); // something else
+            }
+        }).catch((err) => { reject({ errors: [{ param: "Server", msg: "Cannot communicate" }] }) }); // connection errors
+    });
+}
 
-const API = { getAllExams, insertNewExam, updateExam, deleteExam, getAllCourses, userLogin, getCSRFToken, userLogout };
+
+
+const API = { getAllExams, insertNewExam, updateExam, deleteExam, getAllCourses, userLogin, getCSRFToken, userLogout, getUserInfo };
 export default API;

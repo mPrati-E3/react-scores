@@ -1,8 +1,17 @@
 import React from 'react';
 import AppTitle from "./AppTitle";
-import { ExamScores, OptionalExamForm, OptionalErrorMsg, Loading } from "./ExamComponents";
-import { LoginForm, Logout } from "./LoginComponent";
+import { ExamScores, ExamForm, OptionalErrorMsg, Loading } from "./ExamComponents";
+import { Login, Logout } from "./LoginComponent";
 import API from './API';
+
+import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom';
+
+/*
+const MyPrivateRoute = ({ isLoggedIn, ...props }) =>
+  isLoggedIn
+    ? <Route { ...props } />
+    : <Redirect to="/login" />
+*/
 
 class App extends React.Component {
 
@@ -10,22 +19,47 @@ class App extends React.Component {
         super(props);
 
         this.state = { exams: [], courses: [], 
-            mode: 'login', editedExam: null, 
-            errorMsg: '', loginError: false,
-            user: '',
-            csrfToken: null };
+            isLoggedIn: false, // User is authenticated
+            loading: true,     // Need to start with loading: true to check if user already is logged in
+            errorMsg: '',      // Error message received by an API call
+            loginError: false, // Need to display that login action failed
+            user: '',          // Name of user to display when authenticated
+            csrfToken: null 
+        };
     }
 
     componentDidMount() {
-        // load initial data is now done after login
-        // this.loadInitialData();
+        // NB: This is required only if you want to recognize that a user is already logged in when
+        // reloading the application in the browser or by manually setting a URL in the browser URL bar
+        // To remove it, remember to se the initial state loading:false
+
+        // Attempt to load user info as if the user were authenticated, to determine:
+        // - if the authorization token is present (since cookie is not directly accessible)
+        // - if the token is present, if it is still valid
+        // - if it is valid, re-init user, exams, courses, csrfToken
+        if (!this.state.isLoggedIn) {
+            API.getUserInfo().then( (userInfo) => { 
+                this.setState({isLoggedIn: true, user: userInfo.name});
+                this.loadInitialData();
+                API.getCSRFToken().then( (response) => {this.setState({csrfToken: response.csrfToken})} );
+            }).catch( (errorObj) => {
+                if (errorObj.status && errorObj.status === 401) {
+                    // isLoggedIn false redirects to /login
+                    this.setState({isLoggedIn: false, loading: false, loginError: false, errorMsg:''});
+                }
+            })
+        }
     }
 
     loadInitialData() {
         const promises = [ API.getAllExams(), API.getAllCourses() ];
         Promise.all(promises).then(
             ([ex, cs]) => {
-                this.setState({ exams: this.sortExams(ex), courses: cs, mode: 'view' })
+                this.setState({ exams: this.sortExams(ex), courses: cs, loading: false })
+            }
+        ).catch(
+            (errorObj) => {
+                this.handleErrors(errorObj);
             }
         );
     }
@@ -38,11 +72,12 @@ class App extends React.Component {
     handleErrors(errorObj) {
         if (errorObj) {
             if (errorObj.status && errorObj.status === 401) {
-                setTimeout( ()=>{this.setState({mode:'login', loginError:false, errorMsg:''})}, 2000 );
+                // isLoggedIn false redirects to /login
+                setTimeout( ()=>{this.setState({isLoggedIn: false, loginError:false, errorMsg:''})}, 2000 );
             }
             const err0 = errorObj.errors[0];
             const errorString = err0.param + ': ' + err0.msg;
-            this.setState({ errorMsg: errorString });
+            this.setState({ errorMsg: errorString, loading: false });
         }
     }
 
@@ -64,23 +99,6 @@ class App extends React.Component {
                 }
             )
         }
-        /*
-        // Mandatory reading: https://www.robinwieruch.de/react-state-array-add-update-remove
-        this.setState((state) => {
-            // remove possible duplicates (same code) -- happens when you EDIT a course
-            let buildState = state.exams.filter((ex) => ex.coursecode !== exam.coursecode);
-            // add new exam
-            buildState.push(exam);
-            // sort by date
-            buildState.sort((a, b) => a.date.localeCompare(b.date));
-            return {exams: buildState}
-        });
-        */
-        this.setState({ mode: 'view' });
-    }
-
-    requireEditExam = (exam) => {
-        this.setState({ mode: 'edit', editedExam: exam, errorMsg: '' });
     }
 
     deleteExam = (exam) => {
@@ -94,75 +112,77 @@ class App extends React.Component {
         //this.setState((state) => ({exams: state.exams.filter((ex) => ex.coursecode !== exam.coursecode)}));
     }
 
-    cancelForm = () => {
-        this.setState({ mode: 'view', editedExam: null, errorMsg: '' });
-
-    }
-
-    openExamForm = () => {
-        this.setState({ mode: 'add', editedExam: null, errorMsg: '' });
-    }
-
     cancelErrorMsg = () => {
         this.setState({ errorMsg: '' });
     }
 
-    userLogin = (user, pass) => {
-        this.setState({mode: 'loginInProgress'});
-        API.userLogin(user, pass).then(
-            (userObj) => {
-                this.setState({ mode: 'loading' , loginError: false, user: userObj.name});
-                this.loadInitialData();
-                API.getCSRFToken().then( (response) => this.setState({csrfToken: response.csrfToken}));
-            }
-        ).catch(
-            () => {this.setState({loginError: true, mode: 'login', user: ''})}
-            /*
-            (errorObj) => {
-                if (errorObj) {
-                    const err0 = errorObj.errors[0];
-                    const errorString = err0.param + ': ' + err0.msg;
-                    this.setState({ errorMsg: errorString })
-                }
-                API.getAllExams().then((ex) => this.setState({ exams: this.sortExams(ex) }))
-            }
-            */
-        );
-    }
-
     userLogout = () => {
         API.userLogout().then(
-            () => {this.setState({mode: 'login', user: ''})}
+            () => {this.setState({isLoggedIn: false, user: ''})}
         );
     }
 
-    cancelLoginErrorMsg = () => {
-        this.setState({loginError: false});
+    setLoggedInUser = (name) => {
+        this.setState({isLoggedIn: true, user: name, loading: true});
+        this.loadInitialData();
+        API.getCSRFToken().then( (response) => this.setState({csrfToken: response.csrfToken}));
     }
 
     render() {
-        // NB: for simplicity, this implementation does not use react routes
-        // This is NOT the recommended way to implement login "pages" in React
-        return <div className="App">
-            <AppTitle />
-            <Logout mode={this.state.mode} userLogout={this.userLogout} />
-            
-            <OptionalErrorMsg errorMsg={this.state.loginError?'Wrong username and/or password':''}
-                cancelErrorMsg={this.cancelLoginErrorMsg} />
-            <LoginForm mode={this.state.mode} userLogin={this.userLogin} />
+        return <Router>
+            <Switch>
+                <Route path='/login' render={(props) => {
+                    // This automatically redirect to main page if user is logged in
+                    // Use logout button or manually delete the authorization cookie to logout
+                    if (this.state.isLoggedIn)
+                        return <Redirect to='/' />;
+                    else
+                        return <>
+                            <AppTitle />
+                            <Login setLoggedInUser={this.setLoggedInUser} />
+                        </>;
+                }} >
+                </Route>
+                <Route path='/update' render={ (props) => {
+                    return <>
+                    <AppTitle />
+                    <ExamForm courses={this.state.courses}
+                        exam={props.location.state && props.location.state.exam}
+                        addOrEditExam={this.addOrEditExam} />
+                    </>;
+                } }>
+                </Route>
+                <Route path='/' render={(props) => {
+                    if (this.state.loading)
+                        return <>
+                            <AppTitle />
+                            <Logout isLoggedIn={this.state.isLoggedIn} userLogout={this.userLogout} />
+                            <Loading />
+                        </>;
+                    else {
+                        // Logged in if it is already so in this.state, or it just became so from the origin link
+                        let isLoggedIn = this.state.isLoggedIn;
+                        if (props.location.state && props.location.state.isLoggedIn)
+                            isLoggedIn = props.location.state.isLoggedIn;
 
-            <Loading mode={this.state.mode} />
-            <OptionalErrorMsg errorMsg={this.state.errorMsg} cancelErrorMsg={this.cancelErrorMsg} />
-            <ExamScores exams={this.state.exams} courses={this.state.courses} mode={this.state.mode}
-                user={this.state.user}
-                openExamForm={this.openExamForm} requireEditExam={this.requireEditExam}
-                deleteExam={this.deleteExam}
-            />
-            <OptionalExamForm courses={this.state.courses} mode={this.state.mode} exam={this.state.editedExam}
-                addOrEditExam={this.addOrEditExam}
-                cancelForm={this.cancelForm}
-            />
-        </div>
+                        if (isLoggedIn)
+                            return <>
+                                <AppTitle />
+                                <Logout isLoggedIn={this.state.isLoggedIn} userLogout={this.userLogout} />
+                                <OptionalErrorMsg errorMsg={this.state.errorMsg} cancelErrorMsg={this.cancelErrorMsg} />
+                                <ExamScores exams={this.state.exams} courses={this.state.courses}
+                                    isLoggedIn={this.state.isLoggedIn}
+                                    user={this.state.user}
+                                    deleteExam={this.deleteExam}
+                                />
+                            </>;
+                        else
+                            return <Redirect to='/login' />;
+                    }
+                }} >
+                </Route>
+            </Switch>
+        </Router>
     }
 
 }
