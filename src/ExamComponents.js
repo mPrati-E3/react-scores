@@ -1,33 +1,32 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { iconAdd, iconDelete, iconEdit } from "./svgIcons";
 
 import { Link, Redirect } from 'react-router-dom';
 
-class ExamTable extends React.Component {
+function ExamTable(props) {
 
-    render() {
-        return <table className='table ' style={{ marginBottom: 0 }}>
-            <thead>
-                <tr>
-                    <th className='col-6'>Exam</th>
-                    <th className='col-2'>Score</th>
-                    <th className='col-2'>Date</th>
-                    <th className='col-2'>Actions</th>
-                </tr>
-            </thead>
-            <tbody>{
-                this.props.exams.map((e) => <ExamRow key={e.coursecode}
-                    exam={e}
-                    examName={this.props.courseNames[e.coursecode]}
-                    deleteExam={this.props.deleteExam}
-                />)
-                /* NOTE: exam={{...e, name: this.props.courseNames[e.coursecode]}} could be a quicker (and dirtier) way
-                to add the .name property to the exam, instead of passing the examName prop */
-            }
-            </tbody>
-            <caption style={{ captionSide: 'top' }}>Exams of {this.props.user}</caption>
-        </table>
-    }
+    return <table className='table ' style={{ marginBottom: 0 }}>
+        <thead>
+            <tr>
+                <th className='col-6'>Exam</th>
+                <th className='col-2'>Score</th>
+                <th className='col-2'>Date</th>
+                <th className='col-2'>Actions</th>
+            </tr>
+        </thead>
+        <tbody>{
+            props.exams.map((e) => <ExamRow key={e.coursecode}
+                exam={e}
+                examName={props.courseNames[e.coursecode]}
+                deleteExam={props.deleteExam}
+            />)
+            /* NOTE: exam={{...e, name: this.props.courseNames[e.coursecode]}} could be a quicker (and dirtier) way
+            to add the .name property to the exam, instead of passing the examName prop */
+        }
+        </tbody>
+        <caption style={{ captionSide: 'top' }}>Exams of {props.user}</caption>
+    </table>
+    ;
 }
 
 function ExamRow(props) {
@@ -51,7 +50,7 @@ function RowControls(props) {
         {<>
             <Link to={{ 
                 pathname: '/update', 
-                state: {exam: props.exam} 
+                state: {exam: props.exam}  // Pass the value of exam so that can be captured by the route
                 }} >{iconEdit}</Link>
             <span onClick={() => props.deleteExam(props.exam)}>{iconDelete}</span>
         </>}
@@ -78,73 +77,61 @@ function ExamScores(props) {
     </>;
 }
 
-
-class ExamForm extends React.Component {
-
-    constructor(props) {
-        super(props);
-        this.state = this.props.exam ? 
-            { ...this.props.exam, submitted: false } : 
-            { coursecode: null, score: null, date: null, submitted: false };
-    }
-
-    /*
-    updateCourse = (coursecode) => {
-        this.setState({coursecode: coursecode});
-    }
-
-    updateScore = (score) => {
-        this.setState({score: score});
-    }
-
-    updateDate = (date) => {
-        this.setState({date: new Date(date)});
-    }
+function ExamForm(props) {
+    /* ALTERNATIVE
+    const [examCoursecode, setExamCoursecode] = useState(props.exam ? props.exam.coursecode : null);
+    const [examScore, setExamScore] = useState(props.exam ? props.exam.score : null);
+    const [examDate, setExamDate] = useState(props.exam ? props.exam.date : null);
     */
+    const [exam, setExam] = useState(props.exam ? props.exam : {coursecode:'', score:'', date:''});
+    const [submitted, setSubmitted] = useState(false);
 
-    updateField = (name, value) => {
-        this.setState({ [name]: value });
-    }
+    const formRef = useRef();
 
-    doInsertExam = (exam) => {
-        if (this.form.checkValidity()) {
-            this.props.addOrEditExam(exam);
-            this.setState( {submitted: true});
+    const isModify = props.exam ? true : false;
+
+    const doInsertExam = () => {
+        if (formRef.current.checkValidity()) {
+            props.addOrEditExam(exam);
+            //props.addOrEditExam({coursecode: examCoursecode, score: examScore, date: examDate});
+            setSubmitted(true);
         } else {
-            this.form.reportValidity();
+            formRef.current.reportValidity();
         }
     }
 
-    validateForm = (event) => {
+    const updateField = (name, value) => {
+        const newExam = {...exam, [name]: value}; // Create a copy of the old object, and change the new field
+        setExam(newExam);
+    }
+
+    const validateForm = (event) => {
         event.preventDefault();
     }
 
-    render() {
-        if (this.state.submitted)
-            return <Redirect to='/' />;
-        else
+    if (submitted)
+        return <Redirect to='/' />;
+    else
         return <div className={'jumbotron'}>
-            <form className='' onSubmit={this.validateForm} ref={form => this.form = form}>
-            <ExamFormData exam={{
-                coursecode: this.state.coursecode || '',
-                score: this.state.score || '',
-                date: this.state.date || ''
-            }}
-                courses={this.props.courses}
-
-                updateField={this.updateField}
-                isModify={this.props.exam?true:false}
-            />
-            {/* if you want to handle each field separately:
-            updateCourse={this.updateCourse}
-                          updateScore={this.updateScore}
-                          updateDate={this.updateDate}*/}
-            <ExamFormControls insert={() => this.doInsertExam(this.state)}
-                isModify={this.props.exam?true:false} submitted={this.state.submitted} />
+            <form className='' onSubmit={validateForm} ref={formRef}>
+                <ExamFormData exam={exam}
+                    courses={props.courses}
+                    updateField={updateField}
+                    isModify={isModify}
+                />
+                { /*
+                    updateCoursecode={setExamCoursecode}
+                    updateScore={setExamScore}
+                    updateDate={setExamDate}
+                */ }
+                <ExamFormControls insert={doInsertExam}
+                    isModify={isModify} />
             </form>
         </div>;
-    }
 }
+
+
+
 
 function ExamFormData(props) {
     return <div className={'form-row'}>
@@ -154,23 +141,21 @@ function ExamFormData(props) {
                 name='coursecode'
                 value={props.exam.coursecode}
                 disabled={props.isModify}
-                onChange={(ev) => props.updateField(ev.target.name, ev.target.value)}>
+                onChange={(ev) => props.updateField(ev.target.name, ev.target.value)} >
 
                 <option value=''> </option>
                 {props.courses.map((c) => <option key={c.coursecode}
                     value={c.coursecode}>{c.name} ({c.coursecode})</option>)}
             </select></div>
-        {/* ALTERNATIVE: onChange={(ev) => props.updateCourse(ev.target.value)}>*/}
-
+        {/* ALTERNATIVE: onChange={(ev) => props.updateCoursecode(ev.target.value)}> */}
         &nbsp;
         <div className={'form-group'}>
             <label htmlFor='inputScore'>Score</label>
             <input id='inputScore' className={'form-control'} type='number' min={18} max={31} required={true}
                 name='score'
                 value={props.exam.score}
-                onChange={(ev) => props.updateField(ev.target.name, ev.target.value)}
-            />
-            {/*onChange={(ev) => props.updateScore(ev.target.value)}*/}
+                onChange={(ev) => props.updateField(ev.target.name, ev.target.value)} />
+        {/* ALTERNATIVE: onChange={(ev) => props.updateScore(ev.target.value)}> */}
         </div>
         &nbsp;
         <div className={'form-group'}>
@@ -179,10 +164,8 @@ function ExamFormData(props) {
                 type='date'
                 name='date'
                 value={props.exam.date}
-                onChange={(ev) => props.updateField(ev.target.name, ev.target.value)}
-            />
-            {/*onChange={(ev) => props.updateDate(ev.target.value)}*/}
-
+                onChange={(ev) => props.updateField(ev.target.name, ev.target.value)} />
+        {/* ALTERNATIVE: onChange={(ev) => props.updateDate(ev.target.value)}> */}
         </div>
     </div>
         ;
@@ -190,7 +173,7 @@ function ExamFormData(props) {
 
 function ExamFormControls(props) {
     return <div className={'form-row'}>
-        <button type="button" className="btn btn-primary" disabled={props.submitted}
+        <button type="button" className="btn btn-primary"
             onClick={props.insert}>{props.isModify ? 'Modify' : 'Insert'}</button>
         &nbsp;
         <Link to='/' className="btn btn-secondary" >Cancel</Link>
@@ -203,8 +186,8 @@ function OptionalErrorMsg(props) {
             <strong>Error:</strong> <span>{props.errorMsg}</span>
             <button type='button' className='close' aria-label='Close'
                 onClick={props.cancelErrorMsg}> {/* needed to reset msg in state, so next time renders as null */}
-                {/* do not use data-dismiss which activates bootstrap JS (incompatible with React) 
-                    alternatively, use react-bootstrap components */}
+                {/* do not use data-dismiss which activates bootstrap JS (incompatible with React). 
+                    Alternatively, you can use react-bootstrap components */}
                 <span aria-hidden='true'>&times;</span>
             </button>
         </div>;
