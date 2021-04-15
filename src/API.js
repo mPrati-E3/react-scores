@@ -1,3 +1,5 @@
+// databse
+
 const fakeExams = [
     {coursecode: '01TYMOV', score: 28, date: '2020-04-01'},
     {coursecode: '01SQJOV', score: 29, date: '2020-05-03'},
